@@ -1,5 +1,7 @@
 from abc import ABC
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from threading import gettrace
+from types import GetSetDescriptorType
 from typing import Callable
 
 from .ctx import Ctx
@@ -141,18 +143,17 @@ class Call(Expr):
 
     Ex.: fat(42)
     """
-    name: str
+
+    func: Expr
     params: list[Expr]
-    
+
     def eval(self, ctx: Ctx):
-        func = ctx[self.name]
-        params = []
-        for param in self.params:
-            params.append(param.eval(ctx))
-        
-        if callable(func):
-            return func(*params)
-        raise TypeError(f"{self.name} não é uma função!")
+        # Avalia a função
+        func = self.func.eval(ctx)
+        # Avalia todos os parâmetros
+        evaluated_params = [p.eval(ctx) for p in self.params]
+        # Chama a função com os parâmetros
+        return func(*evaluated_params)
 
 
 @dataclass
@@ -181,6 +182,19 @@ class Assign(Expr):
     Ex.: x = 42
     """
 
+    obj: Expr
+    attr: str
+    value: Expr
+
+    def eval(self, ctx: Ctx):
+        # Avalia o valor a ser atribuído
+        val = self.value.eval(ctx)
+        # Avalia o objeto (deve ser uma instância válida que suporta setattr)
+        target = self.obj.eval(ctx)
+        # Faz a atribuição
+        setattr(target, self.attr, val)
+        return val
+
 
 @dataclass
 class Getattr(Expr):
@@ -190,6 +204,12 @@ class Getattr(Expr):
     Ex.: x.y
     """
 
+    obj: Expr
+    attr: str
+
+    def eval(self, ctx: Ctx):
+        obj_value = self.obj.eval(ctx) # Avalia a expressão do objeto para obter seu valor real dentro do contexto
+        return getattr(obj_value, self.attr) # Retorna o atributo chamado 'attr' do objeto avaliado
 
 @dataclass
 class Setattr(Expr):
@@ -198,7 +218,6 @@ class Setattr(Expr):
 
     Ex.: x.y = 42
     """
-
 
 #
 # COMANDOS

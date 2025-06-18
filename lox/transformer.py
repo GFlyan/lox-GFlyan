@@ -6,9 +6,10 @@ Implementa o transformador da árvore sintática que converte entre as represent
 A resolução de vários exercícios requer a modificação ou implementação de vários
 métodos desta classe.
 """
-
+from token import STRING
 from typing import Callable
-from lark import Transformer, v_args
+from lark import Transformer, v_args, Token
+from lark.tree import Tree
 
 from . import runtime as op
 from .ast import *
@@ -48,9 +49,24 @@ class LoxTransformer(Transformer):
     ne = op_handler(op.ne)
 
     # Outras expressões
-    def call(self, name: Var, params: list):
-        return Call(name.name, params)
-        
+    def assignment(self, left, right=None):
+        if right is None:
+            return left
+        if isinstance(left, Getattr):
+            return Assign(left.obj, left.attr, right)
+        else:
+            pass
+
+    def obj(self, obj: object, *suffixes):
+        for suffix in suffixes:
+            if isinstance(suffix, Var):
+                # Quando o sufixo for um VAR, é um acesso a atributo
+                obj = Getattr(obj, str(suffix.name))
+            elif isinstance(suffix, list):
+                # Quando o sufixo for uma lista, são os argumentos da chamada
+                obj = Call(obj, suffix)
+        return obj
+
     def params(self, *args):
         params = list(args)
         return params

@@ -1,21 +1,23 @@
-?start     : program
+?start        : program
 
-program    : stmt*
+program       : stmt*
 
-?stmt      : expr ";"
-           | print_cmd
+?stmt         : expr ";"
+              | print_cmd
            // | if_cmd
            // | for_cmd
            // | ...
 
-print_cmd  : "print" expr ";"
+print_cmd   : "print" expr ";"
 
 // EXPRESSÕES
-?expr      : test
+?expr        : assignment
 
-?test      : test "==" cmp  -> eq
-           | test "!=" cmp  -> ne
-           | cmp
+?assignment  : test ("=" assignment)?
+
+?test        : test "==" cmp  -> eq
+             | test "!=" cmp  -> ne
+             | cmp
 
 ?cmp       : cmp ">" factor   -> gt
            | cmp "<" factor   -> lt
@@ -27,24 +29,24 @@ print_cmd  : "print" expr ";"
            | factor "-" term  -> sub
            | term
 
-?term      : term "*" atom   -> mul
-           | term "/" atom   -> div 
-           | atom
+?term      : term "*" obj  -> mul
+           | term "/" obj   -> div
+           | obj
 
-?atom      : NUMBER 
+?obj : atom ("." VAR | params)*
+
+?atom      : NUMBER
            | BOOL
            | VAR
            | STRING
            | NIL
            | "(" cmp ")"
-           | call
 
-call       : VAR "(" params ")"
-params     : [ expr ("," expr )* ]
+params     : "(" [expr ("," expr )*] ")"
 
 BOOL.2     : "true" | "false"
 VAR.1      : /[a-z_]\w*/
-NUMBER     : /([1-9][0-9]*|0)(\.[0-9]+)?/ 
+NUMBER     : /([1-9][0-9]*|0)(\.[0-9]+)?/
 STRING     : /"[^"]*"/
 NIL.2      : "nil"
 COMMENT    : "//" /[^\n]*/
